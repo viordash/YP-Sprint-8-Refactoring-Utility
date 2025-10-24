@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "GCC: Build Debug",
+            "label": "build",
             "type": "shell",
             "command": [
                 "mkdir ${workspaceFolder}/build ; ",

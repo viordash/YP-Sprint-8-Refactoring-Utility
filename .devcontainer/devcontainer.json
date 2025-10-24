@@ -1,12 +1,12 @@
 {
   "name": "Ubuntu25.04 with GCC15",
   "build": {
-      "dockerfile": "./Dockerfile",
-      "context": ".",
-      "args": {
-        "USER_UID": "${localEnv:USER_UID}",
-        "USER_GID": "${localEnv:USER_GID}"
-      }
+    "dockerfile": "./Dockerfile",
+    "context": ".",
+    "args": {
+      "USER_UID": "${localEnv:USER_UID}",
+      "USER_GID": "${localEnv:USER_GID}"
+    }
   },
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "remoteUser": "dev",
@@ -19,7 +19,9 @@
         "twxs.cmake",
         "streetsidesoftware.code-spell-checker-russian",
         "streetsidesoftware.code-spell-checker",
-        "matepek.vscode-catch2-test-adapter"
+        "matepek.vscode-catch2-test-adapter",
+        "mhutchie.git-graph",
+        "donjayamanne.githistory"
       ]
     }
   },
