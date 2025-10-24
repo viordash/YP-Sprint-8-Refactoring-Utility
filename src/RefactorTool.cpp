@@ -40,6 +40,19 @@ void RefactorHandler::run(const MatchFinder::MatchResult &Result) {
 // todo: необходимо реализовать обработку случая невиртуального деструктора
 void RefactorHandler::handle_nv_dtor(const CXXDestructorDecl *Dtor, DiagnosticsEngine &Diag, SourceManager &SM) {
     // Реализуйте Ваш код ниже
+    if (!SM.isInMainFile(Dtor->getLocation())) {
+        return;
+    }
+    auto hash = Dtor->getLocation().getHashValue();
+    if (virtualDtorLocations.find(hash) != virtualDtorLocations.end()) {
+        return;
+    }
+
+    auto startLoc = Dtor->getBeginLoc();
+    Rewrite.InsertText(startLoc, "virtual ");
+
+    virtualDtorLocations.insert(hash);
+
     const unsigned DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Remark, "Объявлен деструктор");
     Diag.Report(Dtor->getLocation(), DiagID);
 }
@@ -69,7 +82,10 @@ void RefactorHandler::handle_crange_for(const VarDecl *LoopVar, DiagnosticsEngin
 */
 auto NvDtorMatcher() {
     // todo: замените код ниже, на свою реализацию, необходимо реализовать матчеры для поиска невиртуальных деструкторов
-    return cxxDestructorDecl().bind("classDecl");
+    return cxxDestructorDecl(unless(isImplicit()),  //
+                             unless(isVirtual()),   //
+                             hasAncestor(cxxRecordDecl(unless(isFinal()), hasDescendant(cxxRecordDecl()))))
+        .bind("classDecl");
 }
 
 auto NoOverrideMatcher() {
