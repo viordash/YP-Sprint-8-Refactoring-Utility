@@ -59,6 +59,9 @@ USER $USERNAME
 
 RUN git config --global core.editor code
 
+RUN git config --global user.name "Vitalii Orazov"
+RUN git config --global user.email "viordash@yandex.ru"
+
 # Install conan through pipx
 RUN pipx install conan
 RUN pipx ensurepath
