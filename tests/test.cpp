@@ -37,6 +37,10 @@ protected:
     }
 };
 
+// ============================================================================
+// Tests for 'virtual dtor'
+// ============================================================================
+
 TEST_F(RefactorToolTest, AddsVirtualToNonVirtualDestructor) {
     const std::string original = R"(
 class Base {
@@ -95,20 +99,11 @@ public:
 class Derived : public Base {};
 )";
 
-    const std::string expected = R"(
-class Base {
-public:
-    virtual ~Base() {}
-};
-
-class Derived : public Base {};
-)";
-
     writeTempFile(original);
     runRefactorTool();
     auto refactored = readTempFile();
 
-    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
 }
 
 TEST_F(RefactorToolTest, MultipleInheritance) {
@@ -174,6 +169,176 @@ public:
 };
 
 class Child : public Parent {};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+// ============================================================================
+// Tests for 'override'
+// ============================================================================
+
+TEST_F(RefactorToolTest, AddsOverrideToSimpleMethod) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual void func() {}
+};
+
+class Derived : public Base {
+public:
+    void func() {}
+};
+)";
+
+    const std::string expected = R"(
+class Base {
+public:
+    virtual void func() {}
+};
+
+class Derived : public Base {
+public:
+    void func() override {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, AddsOverrideToPureVirtualRedeclaration) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual void func() = 0;
+};
+
+class Derived : public Base {
+public:
+    void func() = 0;
+};
+)";
+
+    const std::string expected = R"(
+class Base {
+public:
+    virtual void func() = 0;
+};
+
+class Derived : public Base {
+public:
+    void func() override = 0;
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, SkipMethodWithExistingOverride) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual void func() {}
+};
+
+class Derived : public Base {
+public:
+    void func() override {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
+}
+
+TEST_F(RefactorToolTest, IgnoresNonVirtualMethod) {
+    const std::string original = R"(
+class Base {
+public:
+    void func() {}
+};
+
+class Derived : public Base {
+public:
+    void func() {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
+}
+
+TEST_F(RefactorToolTest, IgnoresVirtualDestructors) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual ~Base() {}
+};
+
+class Derived : public Base {
+public:
+    ~Derived() {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
+}
+
+TEST_F(RefactorToolTest, HandlesInheritanceChainForOverride) {
+    const std::string original = R"(
+class GrandParent {
+public:
+    virtual void func() {}
+};
+
+class Parent : public GrandParent {
+public:
+    void func() {}
+};
+
+class Child : public Parent {
+public:
+    void func() {}
+};
+)";
+
+    const std::string expected = R"(
+class GrandParent {
+public:
+    virtual void func() {}
+};
+
+class Parent : public GrandParent {
+public:
+    void func() override {}
+};
+
+class Child : public Parent {
+public:
+    void func() override {}
+};
 )";
 
     writeTempFile(original);

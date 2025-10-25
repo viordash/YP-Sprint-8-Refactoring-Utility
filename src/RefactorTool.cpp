@@ -46,9 +46,9 @@ void RefactorHandler::handle_nv_dtor(const CXXDestructorDecl *Dtor, DiagnosticsE
     }
 
     auto parent = Dtor->getParent();
-    auto &parent_ctx = parent->getASTContext();
+    auto &parentCtx = parent->getASTContext();
 
-    auto declarations = parent_ctx.getTranslationUnitDecl()->decls();
+    auto declarations = parentCtx.getTranslationUnitDecl()->decls();
     bool has_derived = std::any_of(declarations.begin(), declarations.end(), [parent](const Decl *decl) {
         const auto *other = dyn_cast<CXXRecordDecl>(decl);
         return other != parent && other != nullptr && other->isDerivedFrom(parent);
@@ -75,6 +75,14 @@ void RefactorHandler::handle_nv_dtor(const CXXDestructorDecl *Dtor, DiagnosticsE
 // todo: необходимо реализовать обработку случая отсутствие override
 void RefactorHandler::handle_miss_override(const CXXMethodDecl *Method, DiagnosticsEngine &Diag, SourceManager &SM) {
     // Реализуйте Ваш код ниже
+    if (!SM.isInMainFile(Method->getLocation())) {
+        return;
+    }
+
+    auto loc = Method->getTypeSourceInfo()->getTypeLoc().getAs<FunctionProtoTypeLoc>().getLocalRangeEnd();
+    loc = Lexer::getLocForEndOfToken(loc, 0, SM, Method->getASTContext().getLangOpts());
+    Rewrite.InsertText(loc, " override", true);
+
     const unsigned DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Remark, "Объявлен метод");
     Diag.Report(Method->getLocation(), DiagID);
 }
@@ -105,7 +113,10 @@ auto NvDtorMatcher() {
 
 auto NoOverrideMatcher() {
     // todo: замените код ниже, на свою реализацию, необходимо реализовать матчеры для поиска методов без override
-    return cxxMethodDecl().bind("methodDecl");
+    return cxxMethodDecl(isOverride(),                            //
+                         unless(hasAttr(clang::attr::Override)),  //
+                         unless(cxxDestructorDecl()))
+        .bind("methodDecl");
 }
 
 auto NoRefConstVarInRangeLoopMatcher() {
