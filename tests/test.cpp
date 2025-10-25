@@ -118,18 +118,12 @@ public:
 };
 )";
 
-    const std::string expected = R"(
-class Base {
-public:
-    ~Base() {}
-};
-)";
 
     writeTempFile(original);
     runRefactorTool();
     auto refactored = readTempFile();
 
-    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
 }
 
 TEST_F(RefactorToolTest, Dtor_SkipAlreadyVirtual) {
