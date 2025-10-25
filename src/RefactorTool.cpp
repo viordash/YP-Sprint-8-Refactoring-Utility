@@ -46,9 +46,9 @@ void RefactorHandler::handle_nv_dtor(const CXXDestructorDecl *Dtor, DiagnosticsE
     }
 
     auto parent = Dtor->getParent();
-    auto &parentCtx = parent->getASTContext();
+    const auto &parentCtx = parent->getASTContext();
 
-    auto declarations = parentCtx.getTranslationUnitDecl()->decls();
+    const auto &declarations = parentCtx.getTranslationUnitDecl()->decls();
     bool has_derived = std::any_of(declarations.begin(), declarations.end(), [parent](const Decl *decl) {
         const auto *other = dyn_cast<CXXRecordDecl>(decl);
         return other != parent && other != nullptr && other->isDerivedFrom(parent);
@@ -63,7 +63,7 @@ void RefactorHandler::handle_nv_dtor(const CXXDestructorDecl *Dtor, DiagnosticsE
         return;
     }
 
-    auto startLoc = Dtor->getBeginLoc();
+    const auto &startLoc = Dtor->getBeginLoc();
     Rewrite.InsertText(startLoc, "virtual ");
 
     virtualDtorLocations.insert(hash);
@@ -79,9 +79,9 @@ void RefactorHandler::handle_miss_override(const CXXMethodDecl *Method, Diagnost
         return;
     }
 
-    auto loc = Method->getTypeSourceInfo()->getTypeLoc().getAs<FunctionProtoTypeLoc>().getLocalRangeEnd();
-    loc = Lexer::getLocForEndOfToken(loc, 0, SM, Method->getASTContext().getLangOpts());
-    Rewrite.InsertText(loc, " override", true);
+    const auto &loc = Method->getTypeSourceInfo()->getTypeLoc().getAs<FunctionProtoTypeLoc>().getLocalRangeEnd();
+    const auto &endLoc = Lexer::getLocForEndOfToken(loc, 0, SM, Method->getASTContext().getLangOpts());
+    Rewrite.InsertText(endLoc, " override", true);
 
     const unsigned DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Remark, "Объявлен метод");
     Diag.Report(Method->getLocation(), DiagID);
@@ -90,6 +90,14 @@ void RefactorHandler::handle_miss_override(const CXXMethodDecl *Method, Diagnost
 // todo: необходимо реализовать обработку случая отсутствие & в range-for
 void RefactorHandler::handle_crange_for(const VarDecl *LoopVar, DiagnosticsEngine &Diag, SourceManager &SM) {
     // Реализуйте Ваш код ниже
+    if (!SM.isInMainFile(LoopVar->getLocation())) {
+        return;
+    }
+
+    const auto &endLoc = LoopVar->getTypeSourceInfo()->getTypeLoc().getEndLoc();
+    const auto &loc = Lexer::getLocForEndOfToken(endLoc, 0, SM, LoopVar->getASTContext().getLangOpts());
+    Rewrite.InsertText(loc, "&", true);
+
     const unsigned DiagID = Diag.getCustomDiagID(DiagnosticsEngine::Remark, "Объявлена переменная");
     Diag.Report(LoopVar->getLocation(), DiagID);
 }
@@ -121,7 +129,12 @@ auto NoOverrideMatcher() {
 
 auto NoRefConstVarInRangeLoopMatcher() {
     // todo: замените код ниже, на свою реализацию, необходимо реализовать матчеры для поиска range-for без &
-    return varDecl().bind("VarDecl");
+    return cxxForRangeStmt(hasLoopVariable(    //
+        varDecl(                               //
+            hasType(isConstQualified()),       //
+            unless(hasType(referenceType())),  //
+            unless(hasType(builtinType())))
+            .bind("VarDecl")));
 }
 
 // Конструктор принимает Rewriter для изменения кода.

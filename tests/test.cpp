@@ -41,7 +41,7 @@ protected:
 // Tests for 'virtual dtor'
 // ============================================================================
 
-TEST_F(RefactorToolTest, AddsVirtualToNonVirtualDestructor) {
+TEST_F(RefactorToolTest, Dtor_AddsVirtualToNonVirtual) {
     const std::string original = R"(
 class Base {
 public:
@@ -67,7 +67,7 @@ class Derived : public Base {};
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
 }
 
-TEST_F(RefactorToolTest, SkipVirtualDestructorForHasNoDescedants) {
+TEST_F(RefactorToolTest, Dtor_SkipForHasNoDescedants) {
     const std::string original = R"(
 class Base {
 public:
@@ -89,7 +89,7 @@ public:
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
 }
 
-TEST_F(RefactorToolTest, SkipAlreadyVirtualDestructor) {
+TEST_F(RefactorToolTest, Dtor_SkipAlreadyVirtual) {
     const std::string original = R"(
 class Base {
 public:
@@ -106,7 +106,7 @@ class Derived : public Base {};
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
 }
 
-TEST_F(RefactorToolTest, MultipleInheritance) {
+TEST_F(RefactorToolTest, Dtor_MultipleInheritance) {
     const std::string original = R"(
 class Base1 {
 public:
@@ -142,7 +142,7 @@ class Derived : public Base1, public Base2 {};
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
 }
 
-TEST_F(RefactorToolTest, InheritanceChain) {
+TEST_F(RefactorToolTest, Dtor_InheritanceChain) {
     const std::string original = R"(
 class GrandParent {
 public:
@@ -182,7 +182,7 @@ class Child : public Parent {};
 // Tests for 'override'
 // ============================================================================
 
-TEST_F(RefactorToolTest, AddsOverrideToSimpleMethod) {
+TEST_F(RefactorToolTest, Override_AddsToSimpleMethod) {
     const std::string original = R"(
 class Base {
 public:
@@ -214,7 +214,7 @@ public:
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
 }
 
-TEST_F(RefactorToolTest, AddsOverrideToPureVirtualRedeclaration) {
+TEST_F(RefactorToolTest, Override_AddsToPureVirtualRedeclaration) {
     const std::string original = R"(
 class Base {
 public:
@@ -246,7 +246,7 @@ public:
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
 }
 
-TEST_F(RefactorToolTest, SkipMethodWithExistingOverride) {
+TEST_F(RefactorToolTest, Override_SkipMethodWithExistingOverride) {
     const std::string original = R"(
 class Base {
 public:
@@ -266,7 +266,7 @@ public:
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
 }
 
-TEST_F(RefactorToolTest, IgnoresNonVirtualMethod) {
+TEST_F(RefactorToolTest, Override_IgnoresNonVirtualMethod) {
     const std::string original = R"(
 class Base {
 public:
@@ -286,7 +286,7 @@ public:
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
 }
 
-TEST_F(RefactorToolTest, IgnoresVirtualDestructors) {
+TEST_F(RefactorToolTest, Override_IgnoresVirtualDestructors) {
     const std::string original = R"(
 class Base {
 public:
@@ -306,7 +306,7 @@ public:
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
 }
 
-TEST_F(RefactorToolTest, HandlesInheritanceChainForOverride) {
+TEST_F(RefactorToolTest, Override_HandlesInheritanceChain) {
     const std::string original = R"(
 class GrandParent {
 public:
@@ -346,4 +346,125 @@ public:
     auto refactored = readTempFile();
 
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+// ============================================================================
+// Tests for 'const T&' in range-for
+// ============================================================================
+
+TEST_F(RefactorToolTest, InRangeLoop_AddsReferenceToConstAutoLoopVar) {
+    const std::string original = R"(
+struct MyType { char ch; };
+void func() {
+    MyType arr[100];
+    for (const auto x : arr) {}
+}
+)";
+
+    const std::string expected = R"(
+struct MyType { char ch; };
+void func() {
+    MyType arr[100];
+    for (const auto& x : arr) {}
+}
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, InRangeLoop_AddsReferenceToConstExplicitTypeLoopVar) {
+    const std::string original = R"(
+struct MyType { char ch; };
+void func() {
+    MyType arr[100];
+    for (const MyType x : arr) {}
+}
+)";
+
+    const std::string expected = R"(
+struct MyType { char ch; };
+void func() {
+    MyType arr[100];
+    for (const MyType& x : arr) {}
+}
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, InRangeLoop_SkipsAlreadyExistingReference) {
+    const std::string original = R"(
+struct MyType { char ch; };
+void func() {
+    MyType arr[100];
+    for (const auto& x : arr) {}
+}
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
+}
+
+TEST_F(RefactorToolTest, InRangeLoop_SkipsFundamentalTypes) {
+    const std::string original = R"(
+void func() {
+    int arr[100];
+    for (const int x : arr) {}
+    double arr2[100];
+    for (const double d : arr2) {}
+    char arr3[100];
+    for (const char ch : arr3) {}
+}
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
+}
+
+TEST_F(RefactorToolTest, InRangeLoop_SkipsPointerTypes) {
+    const std::string original = R"(
+void func() {
+    const char* arr[100];
+    for (const char* s : arr) {}    
+    int* arr2[100];
+    for (const int* p : arr2) {}
+}
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
+}
+
+TEST_F(RefactorToolTest, InRangeLoop_SkipsNonConstVariables) {
+    const std::string original = R"(
+struct MyType { char ch; };
+void func() {
+    MyType arr[100];
+    for (auto x : arr) {}
+    for (MyType x : arr) {}
+}
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
 }
