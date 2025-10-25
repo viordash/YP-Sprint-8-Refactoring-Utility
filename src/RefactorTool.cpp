@@ -7,6 +7,7 @@
 #include "clang/Tooling/Tooling.h"
 #include "llvm/Support/CommandLine.h"
 
+#include <algorithm>
 #include <unordered_set>
 
 #include "RefactorTool.h"
@@ -43,6 +44,20 @@ void RefactorHandler::handle_nv_dtor(const CXXDestructorDecl *Dtor, DiagnosticsE
     if (!SM.isInMainFile(Dtor->getLocation())) {
         return;
     }
+
+    auto parent = Dtor->getParent();
+    auto &parent_ctx = parent->getASTContext();
+
+    auto declarations = parent_ctx.getTranslationUnitDecl()->decls();
+    bool has_derived = std::any_of(declarations.begin(), declarations.end(), [parent](const Decl *decl) {
+        const auto *other = dyn_cast<CXXRecordDecl>(decl);
+        return other != parent && other != nullptr && other->isDerivedFrom(parent);
+    });
+
+    if (!has_derived) {
+        return;
+    }
+
     auto hash = Dtor->getLocation().getHashValue();
     if (virtualDtorLocations.find(hash) != virtualDtorLocations.end()) {
         return;
@@ -82,9 +97,9 @@ void RefactorHandler::handle_crange_for(const VarDecl *LoopVar, DiagnosticsEngin
 */
 auto NvDtorMatcher() {
     // todo: замените код ниже, на свою реализацию, необходимо реализовать матчеры для поиска невиртуальных деструкторов
-    return cxxDestructorDecl(unless(isImplicit()),  //
-                             unless(isVirtual()),   //
-                             hasAncestor(cxxRecordDecl(unless(isFinal()), hasDescendant(cxxRecordDecl()))))
+    return cxxDestructorDecl(         //
+               unless(isImplicit()),  //
+               unless(isVirtual()))
         .bind("classDecl");
 }
 
