@@ -11,8 +11,6 @@ RUN apt install -y python3-minimal python3-pip pipx git less vim sudo cmake make
 RUN apt install -y libllvm-20-ocaml-dev libllvm20 llvm-20 llvm-20-dev llvm-20-doc llvm-20-examples llvm-20-runtime
 RUN apt install -y clang-20 clang-tools-20 clang-20-doc libclang-common-20-dev libclang-20-dev libclang1-20 clang-format-20 python3-clang-20 clangd-20 clang-tidy-20
 
-RUN apt install -y linux-tools-generic
-
 # Cleanup
 RUN apt autoremove -y \
     && apt autoclean \
@@ -60,9 +58,6 @@ RUN set -e; \
 USER $USERNAME
 
 RUN git config --global core.editor code
-
-RUN git config --global user.name "Vitalii Orazov"
-RUN git config --global user.email "viordash@yandex.ru"
 
 # Install conan through pipx
 RUN pipx install conan
