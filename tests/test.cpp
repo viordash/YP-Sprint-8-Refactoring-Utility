@@ -45,7 +45,7 @@ TEST_F(RefactorToolTest, Dtor_AddsVirtualToNonVirtual) {
     const std::string original = R"(
 class Base {
 public:
-    ~Base() {}
+    ~Base() = default;
 };
 
 class Derived : public Base {};
@@ -54,7 +54,33 @@ class Derived : public Base {};
     const std::string expected = R"(
 class Base {
 public:
-    virtual ~Base() {}
+    virtual ~Base() = default;
+};
+
+class Derived : public Base {};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, Dtor_AddsVirtualToDefaultNonVirtual) {
+    const std::string original = R"(
+class Base {
+public:
+    ~Base() = default;
+};
+
+class Derived : public Base {};
+)";
+
+    const std::string expected = R"(
+class Base {
+public:
+    virtual ~Base() = default;
 };
 
 class Derived : public Base {};
