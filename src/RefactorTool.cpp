@@ -51,7 +51,7 @@ void RefactorHandler::handle_nv_dtor(const CXXDestructorDecl *Dtor, DiagnosticsE
     const auto &declarations = parentCtx.getTranslationUnitDecl()->decls();
     bool has_derived = std::any_of(declarations.begin(), declarations.end(), [parent](const Decl *decl) {
         const auto *other = dyn_cast<CXXRecordDecl>(decl);
-        return other != parent && other != nullptr && other->isDerivedFrom(parent);
+        return other != parent && other != nullptr && other->hasDefinition() && other->isDerivedFrom(parent);
     });
 
     if (!has_derived) {

@@ -93,6 +93,23 @@ class Derived : public Base {};
     ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
 }
 
+TEST_F(RefactorToolTest, Dtor_ClassWithNoDefinition) {
+    const std::string original = R"(
+class Base {
+public:
+    ~Base() = default;
+};
+
+class ForwardDeclaration;
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(original));
+}
+
 TEST_F(RefactorToolTest, Dtor_SkipForHasNoDescedants) {
     const std::string original = R"(
 class Base {
