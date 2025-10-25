@@ -17,9 +17,9 @@ protected:
     }
 
     void writeTempFile(const std::string &content) {
-        std::ofstream input_file(temp_file);
-        input_file << content;
-        input_file.close();
+        std::ofstream file(temp_file);
+        file << content;
+        file.close();
     }
 
     void runRefactorTool() {
@@ -45,7 +45,7 @@ TEST_F(RefactorToolTest, Dtor_AddsVirtualToNonVirtual) {
     const std::string original = R"(
 class Base {
 public:
-    ~Base() = default;
+    ~Base() {};
 };
 
 class Derived : public Base {};
@@ -54,7 +54,7 @@ class Derived : public Base {};
     const std::string expected = R"(
 class Base {
 public:
-    virtual ~Base() = default;
+    virtual ~Base() {};
 };
 
 class Derived : public Base {};
