@@ -118,7 +118,6 @@ public:
 };
 )";
 
-
     writeTempFile(original);
     runRefactorTool();
     auto refactored = readTempFile();
@@ -375,6 +374,186 @@ public:
 class Child : public Parent {
 public:
     void func() override {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, Override_HandlesConstQualifier) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual void func() const {}
+};
+class Derived : public Base {
+public:
+    void func() const {}
+};
+)";
+
+    const std::string expected = R"(
+class Base {
+public:
+    virtual void func() const {}
+};
+class Derived : public Base {
+public:
+    void func() const override {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, Override_HandlesNoexcept) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual void func() noexcept {}
+};
+class Derived : public Base {
+public:
+    void func() noexcept {}
+};
+)";
+
+    const std::string expected = R"(
+class Base {
+public:
+    virtual void func() noexcept {}
+};
+class Derived : public Base {
+public:
+    void func() noexcept override {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, Override_HandlesLvalueRefQualifier) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual void func() & {}
+};
+class Derived : public Base {
+public:
+    void func() & {} 
+};
+)";
+
+    const std::string expected = R"(
+class Base {
+public:
+    virtual void func() & {}
+};
+class Derived : public Base {
+public:
+    void func() & override {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, Override_HandlesRvalueRefQualifier) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual void func() && {}
+};
+class Derived : public Base {
+public:
+    void func() && {} 
+};
+)";
+
+    const std::string expected = R"(
+class Base {
+public:
+    virtual void func() && {}
+};
+class Derived : public Base {
+public:
+    void func() && override {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, Override_HandlesFinalSpecifier) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual void func() {}
+};
+class Derived : public Base {
+public:
+    void func() final {}
+};
+)";
+
+    const std::string expected = R"(
+class Base {
+public:
+    virtual void func() {}
+};
+class Derived : public Base {
+public:
+    void func() override final {}
+};
+)";
+
+    writeTempFile(original);
+    runRefactorTool();
+    auto refactored = readTempFile();
+
+    ASSERT_EQ(remove_whitespaces(refactored), remove_whitespaces(expected));
+}
+
+TEST_F(RefactorToolTest, Override_HandlesCombination) {
+    const std::string original = R"(
+class Base {
+public:
+    virtual void func() const & noexcept = 0;
+};
+class Derived : public Base {
+public:
+    void func() const & noexcept {}
+};
+)";
+
+    const std::string expected = R"(
+class Base {
+public:
+    virtual void func() const & noexcept = 0;
+};
+class Derived : public Base {
+public:
+    void func() const & noexcept override {}
 };
 )";
 
